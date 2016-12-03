@@ -1,0 +1,372 @@
+<html>
+    <head>
+        <title>Blackjack</title>
+        <link href="css/bootstrap.min.css" rel="stylesheet">
+	<link href="css/bootstrap-theme.min.css" rel="stylesheet">
+    </head>
+
+    <body class='' onload='loadGame()' style="background-color: black   "><br>
+        <div class="container panel panel-info" style="background-color: green"><div class="panel-body" >
+        <div class='container' id='dealer'><img src='image/dealer.jpg' height='119' weidth='81'></div>
+        <div class='container' ><h2 class="col-sm-1" id="displaydealer"><br></h2></div><br>
+        <input type="hidden" id="cardno" value="3" >
+        <input type="hidden" id="gameover" value="0" >
+        <input type="hidden" id="sumDealer" value="0">
+        <input type="hidden" id="sum" value="0">
+        <input type="hidden" id="userA" value="0">
+        <input type="hidden" id="dealerA" value="0">
+        <div class='container' id='user'><img src='image/user.jpg' height='119' weidth='81'>     </div>
+        <div class='container' ><h2 class="col-sm-1" id="displayuser"></h2></div><br><br>
+        <div class="container">
+        <div class="col-sm-2"><button id="hit" onclick="hit()" value="hit" class="form-control btn btn-default">HIT</button></div>
+        <div class="col-sm-2"><button class="form-control btn btn-default" id="stand" onclick="stand()" value="stand">STAND</button></div>
+        <div class="col-sm-2"><button class="form-control btn btn-default" id="double" onclick="double()" value="double">DOUBLE</button></div>
+        <div class="col-sm-2"><button class="form-control btn btn-danger" id="newgame" onclick="newgame()" value="newgame">NEW GAME</button></div>
+        </div>
+            </div></div>
+        <div class="container">
+            <br>
+            <div class="alert alert-success" id="won" role="alert" hidden="true"></div>
+            <div class="alert alert-warning" id="draw" role="alert" hidden="true"></div>
+            <div class="alert alert-danger" id="lost" role="alert" hidden="true"></div>
+            <div class="alert alert-info" id="blackjack" role="alert" hidden="true"></div>
+        </div><br>
+    </body>
+
+
+
+<script>
+    // GAME FUNCTIONS
+    function loadGame(){
+        cards = new Array(1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52);
+        shuffle(cards);
+        var user = document.getElementById('user');
+        user.innerHTML = user.innerHTML + getImage(cards[0]) + getImage(cards[2]) ;
+        var dealer = document.getElementById('dealer');
+        checkifthisisaceUser(cards[0]);
+        checkifthisisaceUser(cards[2]);
+        dealer.innerHTML = dealer.innerHTML + getImage(cards[1]);
+        checkifthisisaceDealer(cards[1]);
+        setDealerScore(cardValue(cards[1]));
+        var sum = cardValue(cards[0]) + cardValue(cards[2]);
+        //alert(sum);
+ 
+        setUserScore(sum);
+        checkForBlackJack();
+        display();
+
+    }
+
+    function hit(){
+        var cardno = getCardNo() ;
+        var sum = getUserScore() ;
+        //alert(cardno);
+        var user = document.getElementById('user');
+        checkifthisisaceUser(cards[cardno]);
+        
+        sum = parseInt(sum) + parseInt(cardValue(cards[cardno]));
+        user.innerHTML = user.innerHTML + getImage(cards[cardno]);
+        cardno++;
+        setCardNo(cardno);
+        setUserScore(sum);
+        display();
+        if(checkIfBurst()){
+            if(checkifAuser()){
+                var usera=getUserA();
+                var userScore = getUserScore();
+                userScore =  userScore - 10;
+                usera--;
+                setUserA(usera);
+                setUserScore(userScore);
+                display();
+                
+            }else{
+                dealerWon();
+                disableall();
+            }
+        }
+    }
+
+    function stand(){
+        disableall();
+        while(true){
+            var cardno = getCardNo() ;
+            var sumDealer = getDealerScore() ;
+            
+            sumDealer = parseInt(sumDealer) + parseInt(cardValue(cards[cardno]));
+            setDealerScore(sumDealer);
+            display();
+            var dealer = document.getElementById('dealer');
+            dealer.innerHTML = dealer.innerHTML + getImage(cards[cardno]);
+            cardno++;
+            setCardNo(cardno);
+            var output = checkOutput();
+            //alert("output="+output);
+            if(output == 1){
+                userWon();
+                //alert("Congrats you won");
+                break;
+            }else if(output == 2){
+                draw();
+                break;
+            }else if(output == 3){
+                dealerWon();
+                //alert("Dealer won ");
+                break;
+            }
+            
+        }
+
+    }
+
+    function double(){
+        hit();
+        if(!checkIfBurst()){
+            stand();
+        }
+    }
+    
+    function newgame(){
+        var gameover =getGameOngoing() ;
+        if(gameover == 0){
+            if(confirm("Are you sure ? \nYou will lose if you restart!!")){
+                location.reload();
+            }
+        }else{
+            location.reload();
+        }
+        
+    }
+    // GAME FUNCTIONS
+        
+    // SUPPORTING FUNCTIONS    
+    function cardValue(num){
+        var score=0;
+        var cardNumber = num % 13 ;
+        if(num != 0){
+            if(cardNumber == 0){
+                score=10;
+            }else if(cardNumber == 1){
+                score=11;
+            }else if(cardNumber < 11){
+                score=cardNumber;
+            }else{
+                score=10;
+            }
+        }
+    return score;
+    }
+        
+    function checkOutput(){
+        
+        var uservalue = parseInt(getUserScore());
+        var dealerval = parseInt(getDealerScore());
+//        alert("dealer="+dealerval);
+//        alert("user="+uservalue);
+    
+        if(dealerval >= 22){
+            var dealerace = getDealerA();
+            if(dealerace != 0){
+                dealerace--;
+                dealerval=dealerval - 10;
+                setDealerA(dealerace);
+                setDealerScore(dealerval);
+                display();
+            }
+            return 1;//dealer burst
+        }else if(dealerval === uservalue){
+            return 2;//draw
+        }else if(dealerval > uservalue){
+            return 3;//dealer won
+        }
+        
+        return 4;//continue
+        
+    }
+    
+    function checkIfBurst(){
+        var sum = parseInt(getUserScore()) ;
+        
+        if(sum > 21){
+            return true;
+        }
+        return false;
+    }
+    
+    function checkForBlackJack(){
+        sum = parseInt(getUserScore());
+        if(sum == 21){
+            blackjack();
+            disableall();
+        }
+
+    }
+    
+    function getImage(src){
+        var image="<img width='82' height='119' src='image/cards/";
+        image += src;
+        image +=".png'>";
+        return image;
+    }
+    function checkifAuser(){
+        var userA = getUserA();
+        if(userA == 0){
+            return false;
+        }else{
+            return true;
+        }
+    }
+    
+    function checkifthisisaceUser(card){
+        
+        if(card == 1 || card == 14 || card == 27 || card == 40){
+            var currentace = getUserA();
+            currentace++;
+            setUserA(currentace);
+        }
+    }
+    
+    function checkifthisisaceDealer(card){
+        
+        if(card == 1 || card == 14 || card == 27 || card == 40){
+            var currentace = getDealerA();
+            currentace++;
+            setDealerA(currentace);
+        }
+    }
+    
+    function  shuffle(a) {
+        var j, x, i;
+        for (i = a.length; i; i--) {
+            j = Math.floor(Math.random() * i);
+            x = a[i - 1];
+            a[i - 1] = a[j];
+            a[j] = x;
+        }   
+    }
+    // SUPPORTING FUNCTIONS    
+    
+    // GETERS
+    function getUserA(){
+        return document.getElementById("userA").value;
+    }
+    
+    function getDealerA(){
+        return document.getElementById("dealerA").value;
+    }
+        
+    function getUserScore(){
+        return document.getElementById('sum').value;
+    }
+    
+    function getDealerScore(){
+        return document.getElementById('sumDealer').value;
+    } 
+    
+    function getCardNo(){
+        return document.getElementById('cardno').value;
+    }
+    
+    function getGameOngoing(){
+        return document.getElementById('gameover').value;
+    }
+    
+    function getTotalMoney(){
+        return document.getElementById('totalmoney').value;
+    }
+    
+    function getTotalStake(){
+        return document.getElementById('totalstake').value;
+    }
+    // GETERS
+    
+    
+    // SETTERS
+    function setDealerScore(sum){
+        document.getElementById('sumDealer').value = sum;
+    }
+    
+    function setDealerA(ace){
+        document.getElementById('dealerA').value = ace;
+    }
+    function setUserA(ace){
+        document.getElementById('userA').value = ace;
+    }
+    
+    function setUserScore(sum){
+        document.getElementById('sum').value = sum;
+    }
+    
+    function setCardNo(no){
+        document.getElementById('cardno').value = no;
+    }
+    
+    function setGameOngoing(no){
+        document.getElementById('gameover').value = no;
+    }
+    
+    function setTotalMoney(money){
+        document.getElementById('totalmoney').value = money;
+    }
+    
+    function setTotalStake(stake){
+        document.getElementById('totalstake').value = stake;
+    }
+    // SETTERS
+    
+    
+    // DISABLE BUTTONS 
+    function disableHit(){
+        document.getElementById('hit').disabled = 1;
+    }
+    
+    function disableStand(){
+        document.getElementById('stand').disabled = 1;
+    }
+    
+    function disableDouble(){
+        document.getElementById('double').disabled = 1;
+    }
+    
+    function disableall(){
+        disableDouble();
+        disableStand();
+        disableHit();
+        setGameOngoing(1)
+    }
+    // DISABLE BUTTONS 
+    
+    
+    //DISAPLY 
+    function display(){
+        
+        document.getElementById('displayuser').innerHTML= "Points:" + getUserScore() ;    
+        document.getElementById('displaydealer').innerHTML= "Points:" + getDealerScore() ;       
+    }  
+    //DISPLAY
+    
+    
+    //WINNING
+    
+    function userWon(){
+        document.getElementById("won").hidden = false;
+        document.getElementById("won").innerHTML="Congrats you won";
+    }
+    
+    function draw(){
+        document.getElementById("draw").hidden = false;
+        document.getElementById("draw").innerHTML="on snap! its a draw";
+    }
+    
+    function dealerWon(){
+        document.getElementById("lost").hidden = false;
+        document.getElementById("lost").innerHTML="Sorry! dealer won";
+    }
+    
+    function blackjack(){
+        document.getElementById("blackjack").hidden = false;
+        document.getElementById("blackjack").innerHTML="21 baby !! BLACKJACK";
+    }
+    //WINNIG
+    
+</script>
